@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Зоомагазин Макаренко Анни</title>
+    <style>
+        :root {
+            --bg-color: #008080;
+            --header-bg: rgba(255, 255, 255, 0.15);
+            --btn-purple: #8e44ad;
+            --card-bg: #ffffff;
+            --btn-buy: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: white;
+        }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 50px; background: var(--header-bg); backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .logo-title { margin: 0; font-size: 20px; font-weight: bold; }
+
+        .search-container input {
+            padding: 12px 20px; width: 300px; border-radius: 25px; border: none; outline: none;
+        }
+
+        .auth-buttons button {
+            padding: 10px 20px; margin-left: 10px; border-radius: 20px; border: none;
+            cursor: pointer; font-weight: 600;
+        }
+
+        .main-content {
+            padding: 40px 50px; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px;
+        }
+
+        .product-card {
+            background: var(--card-bg); color: #333; padding: 15px;
+            border-radius: 18px; text-align: center; transition: 0.3s;
+        }
+
+        .product-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; }
+        .product-title { font-weight: bold; margin: 10px 0; height: 40px; }
+        .product-price { font-size: 18px; color: var(--bg-color); font-weight: 700; margin-bottom: 10px; }
+
+        .buy-btn {
+            background: var(--btn-buy); color: white; border: none;
+            padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000;
+        }
+
+        .modal-content {
+            background: white; padding: 30px; border-radius: 20px;
+            width: 350px; color: #333; display: flex; flex-direction: column; gap: 15px;
+        }
+
+        .modal-content input, .modal-content textarea {
+            padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit;
+        }
+
+        .submit-btn {
+            background-color: var(--btn-purple); color: white; padding: 14px;
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold;
+        }
+
+        .close-btn { color: #888; cursor: pointer; text-align: center; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 class="logo-title">Зоомагазин Макаренко Анни</h1>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Що ви бажаєте знайти?">
+    </div>
+    <div class="auth-buttons">
+        <button onclick="openAuth('Вхід', 'увійти')">Увійти</button>
+        <button onclick="openAuth('Реєстрація', 'зареєструватися')">Зареєструватися</button>
+    </div>
+</header>
+
+<main class="main-content" id="catalog"></main>
+
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <h2 id="authTitle" style="margin:0">Вхід</h2>
+        <input type="email" placeholder="Email">
+        <input type="password" placeholder="Пароль">
+        <button class="submit-btn" id="authSubmitBtn">Дія</button>
+        <span class="close-btn" onclick="closeModals()">Скасувати</span>
+    </div>
+</div>
+
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <h2 style="margin:0">Оформлення</h2>
+        <p id="orderProductName" style="font-weight: bold; color: var(--bg-color);"></p>
+        <input type="tel" id="userPhone" placeholder="+380 (__) ___ __ __">
+        <input type="text" id="userPost" placeholder="Номер відділення пошти">
+        <textarea id="orderComment" placeholder="Коментар до замовлення"></textarea>
+        <button class="submit-btn" onclick="confirmOrder()" style="background-color: var(--btn-buy);">Підтвердити замовлення</button>
+        <span class="close-btn" onclick="closeModals()">Закрити</span>
+    </div>
+</div>
+
+<script>
+    const products = [
+        { name: "Нашийник для собак", price: "245 грн", img: "https://img.toba.ua/products/800/800/1959_osheynik-dlya-sobak-neylonovyy-waudog-nylon-rozovyy-kamo.jpg" },
+        { name: "Повідець (3 метри)", price: "380 грн", img: "https://dog.com.ua/media/default/203021.jpg" },
+        { name: "Корм для щенят (3 кг)", price: "280 грн", img: "https://zoolove.com.ua/components/com_jshopping/files/img_products/full_korm-brit-care-bez-phenicy-mini-puppy-2-kg-upakovka-zoolove-com-ua.jpg" },
+        { name: "Корм для дорослих собак", price: "430 грн", img: "https://zoolove.com.ua/components/com_jshopping/files/img_products/full_korm-brit-care-grain-free-adult-medium-breeds-lamb-rice-3-kg-upakovka-zoolove-com-ua.jpg" },
+        { name: "Корм для котів", price: "420 грн", img: "https://optimeal.ua/images/product/large/21564f36532fb7404011b9f9cdd39070.jpeg" },
+        { name: "Іграшки для котів", price: "120 грн", img: "https://content.rozetka.com.ua/goods/images/big/637462390.jpg" },
+        { name: "Клітка для гризунів", price: "1250 грн", img: "https://vetzoo.com.ua/image-cache/?fi=32825&wt=0&f=static-files%2Fimg%2Fgoods%2F36%2F28%2Fklitka-shchurik-dlya-dekorativnih-grizuniv-serednih-rozmiriv-57-5-h-30-h-31-5-sm-lori-11773064.jpg" },
+        { name: "Препарати від кліщів", price: "450 грн", img: "https://korm.com.ua/images/thumbnails/800/600/detailed/5668/t7245590max.jpg" },
+        { name: "Лежанка м'яка", price: "900 грн", img: "https://cdn.27.ua/sc--media--prod/default/1c/82/8f/1c828f9c-bdab-44a6-a4c7-5bc5330f4d21.jpg" },
+        { name: "Шлея для собак", price: "520 грн", img: "https://waudog.ua/image/cache/catalog/products2/52864_00_01-1200x1200.jpg" },
+        { name: "Ласощі для котів та собак", price: "125 грн", img: "https://amigovet.net/wp-content/uploads/2024/12/tuna_amigovet-1.webp" },
+        { name: "Корм для риб", price: "85 грн", img: "https://pethouse.ua/assets/images/prods/tetra/0000047231.jpg" },
+        { name: "Миски (набір 2 шт)", price: "310 грн", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7UF38Yh_mrjsHxzLB9vz8E_inJ0yG6LENbg&s" },
+        { name: "Одяг для собак", price: "720 грн", img: "https://images.prom.ua/4916401867_w1280_h640_4916401867.jpg" },
+        { name: "Щітка для вичосування шерсті", price: "299 грн", img: "https://images.prom.ua/3952326217_w640_h320_kovtunorez-furmaster-dlya.jpg" }
+    ];
+
+    const catalog = document.getElementById('catalog');
+
+    function render(list) {
+        catalog.innerHTML = '';
+        list.forEach(p => {
+            catalog.innerHTML += `
+                <div class="product-card">
+                    <img src="${p.img}" alt="${p.name}" class="product-img">
+                    <div class="product-title">${p.name}</div>
+                    <div class="product-price">${p.price}</div>
+                    <button class="buy-btn" onclick="openOrder('${p.name}')">Купити</button>
+                </div>
+            `;
+        });
+    }
+
+    render(products);
+
+    // Функція пошуку
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        const filtered = products.filter(p => p.name.toLowerCase().includes(val));
+        render(filtered);
+    });
+
+    const authModal = document.getElementById('authModal');
+    const orderModal = document.getElementById('orderModal');
+
+    function openAuth(title, btnText) {
+        document.getElementById('authTitle').innerText = title;
+        document.getElementById('authSubmitBtn').innerText = btnText;
+        authModal.style.display = 'flex';
+    }
+
+    function openOrder(productName) {
+        document.getElementById('orderProductName').innerText = "Товар: " + productName;
+        orderModal.style.display = 'flex';
+    }
+
+    function closeModals() {
+        authModal.style.display = 'none';
+        orderModal.style.display = 'none';
+    }
+
+    function confirmOrder() {
+        alert("Замовлення успішно оформлено!");
+        closeModals();
+    }
+</script>
+</body>
+</html>
